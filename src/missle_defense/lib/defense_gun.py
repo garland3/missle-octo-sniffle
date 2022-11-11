@@ -51,14 +51,20 @@ class DefenseGun:
 
         pygame.draw.polygon(screen, color, points)
         
-    def update_gun_angle(self, screen, rotation):
+    def update_gun_angle(self, rotation):
         """
         Update the gun based on some rotation. 
         Gun will be drawn at the bottom of the screen
         """
         self.angle = rotation
         
-        self.draw_rectangle(self.screen_width//2, self.screen_height-10, self.gun_width, self.gun_height, (0, 0, 255), screen, rotation)
+    def draw_gun(self, screen):
+        """
+        Draw the gun at the bottom of the screen
+        use the angle to rotate the gun
+        """
+        
+        self.draw_rectangle(self.screen_width//2, self.screen_height-10, self.gun_width, self.gun_height, (0, 0, 255), screen, self.angle)
 
     def shoot(self):
         print("shoot")

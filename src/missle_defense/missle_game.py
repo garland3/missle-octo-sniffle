@@ -27,12 +27,14 @@ SCREEN_HEIGHT = 480
 
 
 class MissleGame:
-    def __init__(self):
+    def __init__(self, show_screen=True):
         print("run")
         # Set up the drawing window
         self.clock = pygame.time.Clock()
 
-        self.screen = pygame.display.set_mode([SCREEN_WIDTH, SCREEN_HEIGHT])
+        self.show_screen = show_screen
+        if self.show_screen is True:
+            self.screen = pygame.display.set_mode([SCREEN_WIDTH, SCREEN_HEIGHT])
         # Run until the user asks to quit
 
         self.missles = pygame.sprite.Group()
@@ -90,7 +92,8 @@ class MissleGame:
             # print(f"right {rotation}")
 
         # Fill the background with white
-        self.screen.fill((255, 255, 255))
+        if self.show_screen is True:
+            self.screen.fill((255, 255, 255))
 
         # Check if the bullet has collided with anything.
         for b in self.bullets:
@@ -111,11 +114,15 @@ class MissleGame:
                 return
 
         self.all_objects.update()
-        for m in self.all_objects:
-            self.screen.blit(m.surf, m.rect)
+        if self.show_screen is True:
+            for m in self.all_objects:
+                self.screen.blit(m.surf, m.rect)
 
         # defense_gun.draw_rectangle(SCREEN_WIDTH/2/2, SCREEN_HEIGHT//2, 30, 20, (0, 0, 255), screen, rotation)
-        self.defense_gun.update_gun_angle(self.screen, self.rotation)
+        self.defense_gun.update_gun_angle(self.rotation)
+        if self.show_screen is True:
+            self.defense_gun.draw_gun(self.screen)
+            
         # rotation += 2
 
         # Flip the display
