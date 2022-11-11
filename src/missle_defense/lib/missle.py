@@ -32,6 +32,9 @@ class Missle(pygame.sprite.Sprite):
         # self.set_center(*elf.center)
         self.rect = self.surf.get_rect(center=self.center)
         # print(f"position is {self.rect}")
+        # if self.rect.x > 800:
+        #     self.you_lost = True
+        #     print("missle killed")
         
         
         

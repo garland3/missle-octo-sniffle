@@ -14,7 +14,7 @@ class Bullet(pygame.sprite.Sprite):
         self.velocity = (math.cos(rot_radians) * speed, math.sin(rot_radians) * speed)
         self.velocity = (self.velocity[0] , self.velocity [1] *-1) # flip y axis
         
-        print(f"Now creating bullet at {self.center} with angle {angle_degrees} and speed {speed}. Velocity is {self.velocity}")
+        # print(f"Now creating bullet at {self.center} with angle {angle_degrees} and speed {speed}. Velocity is {self.velocity}")
         # self.x = 0
         self.surf = pygame.Surface((20, 20))
         self.surf.fill(self.color)

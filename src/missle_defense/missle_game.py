@@ -26,106 +26,120 @@ SCREEN_WIDTH = 640
 SCREEN_HEIGHT = 480
 
 
-def run():
-    print("run")
-    # Set up the drawing window
-    clock = pygame.time.Clock()
+class MissleGame:
+    def __init__(self):
+        print("run")
+        # Set up the drawing window
+        self.clock = pygame.time.Clock()
 
-    screen = pygame.display.set_mode([SCREEN_WIDTH, SCREEN_HEIGHT])
-    # Run until the user asks to quit
-    
-    missles = pygame.sprite.Group()
-    all_objects = pygame.sprite.Group()
-    def make_missle(speed = 0.5):  
+        self.screen = pygame.display.set_mode([SCREEN_WIDTH, SCREEN_HEIGHT])
+        # Run until the user asks to quit
+
+        self.missles = pygame.sprite.Group()
+        self.all_objects = pygame.sprite.Group()
+
+
+        self.missle_speed = 0.5
+
+        self.ADDMISSLE = pygame.USEREVENT + 1
+        self.rate = 1000
+        pygame.time.set_timer(self.ADDMISSLE, self.rate)
+
+        self.defense_gun = DefenseGun(SCREEN_WIDTH, SCREEN_HEIGHT)
+        self.bullets = pygame.sprite.Group()
+        self.score = 0
+        self.running = True
+        self.cnt = 0
+        self.rotation = 180
+        
+    def make_missle(self,speed=0.5):
         new_missle = Missle(speed)
         y = random.randint(0, SCREEN_HEIGHT)
         new_missle.set_center(0, y)
-        missles.add(new_missle)
-        all_objects.add(new_missle)
+        self.missles.add(new_missle)
+        self.all_objects.add(new_missle)
         return new_missle
-    
-    missle_speed = 0.5
-    missle = make_missle(missle_speed)
-    
-    ADDMISSLE = pygame.USEREVENT + 1
-    rate = 1000
-    pygame.time.set_timer(ADDMISSLE, rate)
-    
-    
-    
-    defense_gun = DefenseGun(SCREEN_WIDTH, SCREEN_HEIGHT)
-    # defense_gun.set_center(SCREEN_WIDTH/2/2, SCREEN_HEIGHT//2)
-    
-    # all_objects.add(defense_gun)
-    
-    bullets = pygame.sprite.Group()
 
-    running = True
-    cnt = 0
-    rotation = 180
-    while running:
+    def step(self):
+        """
+        step the game forward one frame
+        """
         # Did the user click the window close button?
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                running = False
-            if event.type == ADDMISSLE:
-                missle = make_missle(missle_speed)
+                self.running = False
+            if event.type == self.ADDMISSLE:
+                _ = self.make_missle(self.missle_speed)
             if event.type == pygame.KEYDOWN:
                 if event.key == K_ESCAPE:
-                    running = False 
+                    self.running = False
                 if event.key == K_SPACE:
                     # Add a new bullet.
                     # when space is pressed, make a bullet
-                    bullet = defense_gun.shoot()
-                    bullets.add(bullet)
-                    all_objects.add(bullet)
-                    
-                    
-        keys = pygame.key.get_pressed()  #checking pressed keys
+                    bullet = self.defense_gun.shoot()
+                    self.bullets.add(bullet)
+                    self.all_objects.add(bullet)
+
+        keys = pygame.key.get_pressed()  # checking pressed keys
         # print(keys)
         if keys[pygame.K_LEFT]:
-            rotation += 1
-            print(f"left {rotation}")
+            self.rotation += 1
+            # print(f"left {rotation}")
         if keys[pygame.K_RIGHT]:
-            rotation-=1
-            print(f"right {rotation}")
-                
-                        
-        # Fill the background with white
-        screen.fill((255, 255, 255))
+            self.rotation -= 1
+            # print(f"right {rotation}")
 
-        
+        # Fill the background with white
+        self.screen.fill((255, 255, 255))
+
         # Check if the bullet has collided with anything.
-        for b in bullets:
-            hit_missle = pygame.sprite.spritecollide(b, missles, True)
+        for b in self.bullets:
+            hit_missle = pygame.sprite.spritecollide(b, self.missles, True)
             if hit_missle:
-                rate -= 10
-                missle_speed+=0.05
-                print(f"hit!!. New rate is {rate} and new speed is {missle_speed}")
-                pygame.time.set_timer(ADDMISSLE, rate)
-                
-                
-        
-        all_objects.update()
-        for m in all_objects:
-            screen.blit(m.surf, m.rect)
-            
+                b.kill()
+                self.rate -= 10
+                self.missle_speed += 0.05
+                print(f"hit!!. New self.rate is {self.rate} and new speed is {self.missle_speed}, score is {self.score}")
+                pygame.time.set_timer(self.ADDMISSLE, self.rate)
+                self.score += 100
+
+        for m in self.missles:
+            if m.rect.x > SCREEN_WIDTH:
+                print("missle past screen")
+                print(f"score is {self.score}")
+                self.running = False
+                return
+
+        self.all_objects.update()
+        for m in self.all_objects:
+            self.screen.blit(m.surf, m.rect)
+
         # defense_gun.draw_rectangle(SCREEN_WIDTH/2/2, SCREEN_HEIGHT//2, 30, 20, (0, 0, 255), screen, rotation)
-        defense_gun.update_gun_angle(screen, rotation)
+        self.defense_gun.update_gun_angle(self.screen, self.rotation)
         # rotation += 2
 
         # Flip the display
         pygame.display.flip()
-        cnt+=1
-        if cnt % 100 == 0:
-            print(cnt)
+        self.cnt += 1
+        if self.cnt % 100 == 0:
+            print(self.cnt)
 
-        # Ensure program maintains a rate of 30 frames per second
-        clock.tick(20)
-        
-    # Done! Time to quit.
-    pygame.quit()
+    def run(self):
+        """
+        Just run the game
+        """
+       
+        while self.running:
+            self.step()
+            if self.running == False:
+                break
+            # Ensure program maintains a rate of 30 frames per second
+            self.clock.tick(20)
+
+        # Done! Time to quit.
+        pygame.quit()
 
 
 if __name__ == "__main__":
-    run()
+    mg = MissleGame()
+    mg.run()
