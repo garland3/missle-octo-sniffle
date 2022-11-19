@@ -47,6 +47,12 @@ class MissleGame:
         self.rate = 1000
         pygame.time.set_timer(self.ADDMISSLE, self.rate)
 
+        # Create a custom event for adding more bullets to the ammo box.        
+        self.ADD_BULLET = pygame.USEREVENT + 2
+        self.rate_new_bullet = 500
+        pygame.time.set_timer(self.ADD_BULLET, self.rate_new_bullet)
+        self.bullets_cnt = 0
+
         self.defense_gun = DefenseGun(SCREEN_WIDTH, SCREEN_HEIGHT)
         self.bullets = pygame.sprite.Group()
         self.score = 0
@@ -78,17 +84,25 @@ class MissleGame:
                 if event.key == K_SPACE:
                     # Add a new bullet.
                     # when space is pressed, make a bullet
-                    bullet = self.defense_gun.shoot()
-                    self.bullets.add(bullet)
-                    self.all_objects.add(bullet)
+                    if self.bullets_cnt>0:
+                        bullet = self.defense_gun.shoot()
+                        self.bullets.add(bullet)
+                        self.all_objects.add(bullet)
+                        self.bullets_cnt -= 1
+                        print("bullet cnt: ", self.bullets_cnt)
+                    else:
+                        print("no more bullets")
+            if event.type == self.ADD_BULLET:
+                if self.bullets_cnt < 100:
+                    self.bullets_cnt += 1
 
         keys = pygame.key.get_pressed()  # checking pressed keys
         # print(keys)
         if keys[pygame.K_LEFT]:
-            self.rotation += 1
+            self.rotation += 3
             # print(f"left {rotation}")
         if keys[pygame.K_RIGHT]:
-            self.rotation -= 1
+            self.rotation -= 3
             # print(f"right {rotation}")
 
         # Fill the background with white
