@@ -1,5 +1,6 @@
-# Temporary and binary files
+tensor_board
 requirements_base.txt
+# Temporary and binary files
 *_missle.zip
 images
 *~

@@ -28,11 +28,11 @@ SCREEN_HEIGHT = 480
 
 class MissleGame:
     def __init__(self, gym_env =False, show_screen=True):
-        print("run")
+        print("starting game")
         # Set up the drawing window
         self.clock = pygame.time.Clock()
         self.gym_env = gym_env
-        print(f"gym_env Bool: {gym_env}")
+        # print(f"gym_env Bool: {gym_env}")
 
         self.show_screen = show_screen
         if self.show_screen is True:
@@ -152,8 +152,8 @@ class MissleGame:
 
         for m in self.missles:
             if m.rect.x > SCREEN_WIDTH:
-                print("missle past screen")
-                print(f"score is {self.score}")
+                # print("missle past screen")
+                print(f"Final score is {self.score}")
                 self.running = False
                 return
 
@@ -172,8 +172,8 @@ class MissleGame:
         # Flip the display
         pygame.display.flip()
         self.cnt += 1
-        if self.cnt % 100 == 0:
-            print(self.cnt)
+        # if self.cnt % 100 == 0:
+        #     print(self.cnt)
 
     def run(self):
         """

@@ -19,12 +19,19 @@ import numpy as np
 from stable_baselines3.common.env_checker import check_env
 from missle_gym.missle_gym import Missle_Env
 
-env = Missle_Env()
-# Box(4,) means that it is a Vector with 4 components
-# print("Observation space:", env.observation_space)
-# print("Shape:", env.observation_space.shape)
-# # Discrete(2) means that there is two discrete actions
-print("Action space:", env.action_space)
+import os
+# https://stackoverflow.com/a/36608933/1319433
+# Xvfb :3 -screen 0 1920x1080x24+32 -fbdir /var/tmp &
+# export DISPLAY=:3
+
+
+
+# env = Missle_Env()
+# # Box(4,) means that it is a Vector with 4 components
+# # print("Observation space:", env.observation_space)
+# # print("Shape:", env.observation_space.shape)
+# # # Discrete(2) means that there is two discrete actions
+# print("Action space:", env.action_space)
 
 
 # It will check your custom environment and output additional warnings if needed
@@ -106,7 +113,7 @@ if attempt1==1:
         return env
     
     # env = DummyVecEnv([lambda: make_env(),lambda: make_env()])
-    env = DummyVecEnv([ Missle_Env for i in range(3)])
+    env = DummyVecEnv([ Missle_Env for i in range(4)])
     
     # Wrap the VecEnv
     # env = VecExtractDictObs(envdummy, key="observation")
@@ -115,6 +122,8 @@ if attempt1==1:
     # Instantiate the env
     # env = Missle_Env()
     # # Train the agent
-    model = DQN('MlpPolicy', env, verbose=1, buffer_size=10000)# 
-    model.learn(total_timesteps=10000, progress_bar=True)
+    model = DQN('MlpPolicy', env, verbose=1, buffer_size=10000,tensorboard_log="./tensor_board/")# 
+    model.learn(total_timesteps=500000, progress_bar=True)
     model.save("dqn_missle")
+    
+    # tensorboard --logdir ./tensor_board/
