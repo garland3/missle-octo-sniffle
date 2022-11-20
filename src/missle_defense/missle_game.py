@@ -78,7 +78,7 @@ class MissleGame:
             self.bullets.add(bullet)
             self.all_objects.add(bullet)
             self.bullets_cnt -= 1
-            print("bullet cnt: ", self.bullets_cnt)
+            # print("bullet cnt: ", self.bullets_cnt)
         # else:
             # print("no more bullets")
         

@@ -74,30 +74,30 @@ if attempt1==0:
     
 if attempt1==1:
     
-    class VecExtractDictObs(VecEnvWrapper):
-        """
-        A vectorized wrapper for filtering a specific key from dictionary observations.
-        Similar to Gym's FilterObservation wrapper:
-            https://github.com/openai/gym/blob/master/gym/wrappers/filter_observation.py
+    # class VecExtractDictObs(VecEnvWrapper):
+    #     """
+    #     A vectorized wrapper for filtering a specific key from dictionary observations.
+    #     Similar to Gym's FilterObservation wrapper:
+    #         https://github.com/openai/gym/blob/master/gym/wrappers/filter_observation.py
 
-        :param venv: The vectorized environment
-        :param key: The key of the dictionary observation
-        """
+    #     :param venv: The vectorized environment
+    #     :param key: The key of the dictionary observation
+    #     """
 
-        def __init__(self, venv: VecEnv, key: str):
-            self.key = key
-            super().__init__(venv=venv, observation_space=venv.observation_space.spaces[self.key])
+    #     def __init__(self, venv: VecEnv, key: str):
+    #         self.key = key
+    #         super().__init__(venv=venv, observation_space=venv.observation_space.spaces[self.key])
 
-        def reset(self) -> np.ndarray:
-            obs = self.venv.reset()
-            return obs[self.key]
+    #     def reset(self) -> np.ndarray:
+    #         obs = self.venv.reset()
+    #         return obs[self.key]
 
-        def step_async(self, actions: np.ndarray) -> None:
-            self.venv.step_async(actions)
+    #     def step_async(self, actions: np.ndarray) -> None:
+    #         self.venv.step_async(actions)
 
-        def step_wait(self) -> VecEnvStepReturn:
-            obs, reward, done, info = self.venv.step_wait()
-            return obs[self.key], reward, done, info
+    #     def step_wait(self) -> VecEnvStepReturn:
+    #         obs, reward, done, info = self.venv.step_wait()
+    #         return obs[self.key], reward, done, info
         
     def make_env():
         env = Missle_Env()
@@ -115,6 +115,6 @@ if attempt1==1:
     # Instantiate the env
     # env = Missle_Env()
     # # Train the agent
-    model = DQN('MlpPolicy', env, verbose=1, buffer_size=5000)# 
-    model.learn(total_timesteps=1000)
+    model = DQN('MlpPolicy', env, verbose=1, buffer_size=10000)# 
+    model.learn(total_timesteps=10000, progress_bar=True)
     model.save("dqn_missle")

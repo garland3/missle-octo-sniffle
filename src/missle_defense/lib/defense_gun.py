@@ -67,7 +67,7 @@ class DefenseGun:
         self.draw_rectangle(self.screen_width//2, self.screen_height-10, self.gun_width, self.gun_height, (0, 0, 255), screen, self.angle)
 
     def shoot(self):
-        print("shoot")
+        # print("shoot")
         bullet = Bullet(self.angle, 10, (self.screen_width//2, self.screen_height-10))
         bullet.screen_width = self.screen_width
         bullet.screen_height = self.screen_height
