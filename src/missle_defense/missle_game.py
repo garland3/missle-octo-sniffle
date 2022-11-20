@@ -18,8 +18,8 @@ from pygame.locals import (
     QUIT,
 )
 
-from lib.missle import Missle
-from lib.defense_gun import DefenseGun
+from missle_defense.lib.missle import Missle
+from missle_defense.lib.defense_gun import DefenseGun
 
 # Define constants for the screen width and height
 SCREEN_WIDTH = 640
@@ -27,10 +27,12 @@ SCREEN_HEIGHT = 480
 
 
 class MissleGame:
-    def __init__(self, show_screen=True):
+    def __init__(self, gym_env =False, show_screen=True):
         print("run")
         # Set up the drawing window
         self.clock = pygame.time.Clock()
+        self.gym_env = gym_env
+        print(f"gym_env Bool: {gym_env}")
 
         self.show_screen = show_screen
         if self.show_screen is True:
@@ -41,16 +43,16 @@ class MissleGame:
         self.all_objects = pygame.sprite.Group()
 
 
-        self.missle_speed = 0.5
+        self.missle_speed = 2.0
 
         self.ADDMISSLE = pygame.USEREVENT + 1
-        self.rate = 1000
-        pygame.time.set_timer(self.ADDMISSLE, self.rate)
+        self.rate = 50
+        # pygame.time.set_timer(self.ADDMISSLE, self.rate)
 
         # Create a custom event for adding more bullets to the ammo box.        
-        self.ADD_BULLET = pygame.USEREVENT + 2
-        self.rate_new_bullet = 500
-        pygame.time.set_timer(self.ADD_BULLET, self.rate_new_bullet)
+        # self.ADD_BULLET = pygame.USEREVENT + 2
+        # self.rate_new_bullet = 500
+        # pygame.time.set_timer(self.ADD_BULLET, self.rate_new_bullet)
         self.bullets_cnt = 0
 
         self.defense_gun = DefenseGun(SCREEN_WIDTH, SCREEN_HEIGHT)
@@ -67,43 +69,69 @@ class MissleGame:
         self.missles.add(new_missle)
         self.all_objects.add(new_missle)
         return new_missle
+    
+    def process_shoot(self):
+        # Add a new bullet.
+        # when space is pressed, make a bullet
+        if self.bullets_cnt>0:
+            bullet = self.defense_gun.shoot()
+            self.bullets.add(bullet)
+            self.all_objects.add(bullet)
+            self.bullets_cnt -= 1
+            print("bullet cnt: ", self.bullets_cnt)
+        # else:
+            # print("no more bullets")
+        
 
-    def step(self):
+    def step(self, action=None):
         """
         step the game forward one frame
         """
+        # print(f"action: {action} and cnt: {self.cnt} and env: {self.gym_env}")
+        
         # Did the user click the window close button?
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                self.running = False
-            if event.type == self.ADDMISSLE:
-                _ = self.make_missle(self.missle_speed)
-            if event.type == pygame.KEYDOWN:
-                if event.key == K_ESCAPE:
+        if self.cnt % 20 == 0:
+            if self.bullets_cnt < 100:
+                self.bullets_cnt += 1
+        
+        if self.cnt % self.rate == 0:
+            _ = self.make_missle(self.missle_speed)
+            
+                
+        if self.gym_env is False:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
                     self.running = False
-                if event.key == K_SPACE:
-                    # Add a new bullet.
-                    # when space is pressed, make a bullet
-                    if self.bullets_cnt>0:
-                        bullet = self.defense_gun.shoot()
-                        self.bullets.add(bullet)
-                        self.all_objects.add(bullet)
-                        self.bullets_cnt -= 1
-                        print("bullet cnt: ", self.bullets_cnt)
-                    else:
-                        print("no more bullets")
-            if event.type == self.ADD_BULLET:
-                if self.bullets_cnt < 100:
-                    self.bullets_cnt += 1
+                # if event.type == self.ADDMISSLE:
+                if event.type == pygame.KEYDOWN:
+                    if event.key == K_ESCAPE:
+                        self.running = False
+                    if event.key == K_SPACE:
+                        self.process_shoot()
 
-        keys = pygame.key.get_pressed()  # checking pressed keys
-        # print(keys)
-        if keys[pygame.K_LEFT]:
-            self.rotation += 3
-            # print(f"left {rotation}")
-        if keys[pygame.K_RIGHT]:
-            self.rotation -= 3
-            # print(f"right {rotation}")
+            keys = pygame.key.get_pressed()  # checking pressed keys
+            # print(keys)
+            if keys[pygame.K_LEFT]:
+                self.rotation += 3
+                # print(f"left {rotation}")
+            if keys[pygame.K_RIGHT]:
+                self.rotation -= 3
+                # print(f"right {rotation}")
+        
+        # ---------------------------------
+        # PROCESS the gym setup. 
+        # ---------------------------------        
+        if self.gym_env is True:
+            # print(f"action: {action}")
+            # For the gym, we need to provide the action
+            if action is not None:
+                if action == 0:
+                    self.rotation += 3
+                if action == 1:
+                    self.rotation -= 3
+                if action == 2:
+                    self.process_shoot()
+            
 
         # Fill the background with white
         if self.show_screen is True:
@@ -115,6 +143,8 @@ class MissleGame:
             if hit_missle:
                 b.kill()
                 self.rate -= 10
+                if self.rate<2:
+                    self.rate = 2
                 self.missle_speed += 0.05
                 print(f"hit!!. New self.rate is {self.rate} and new speed is {self.missle_speed}, score is {self.score}")
                 pygame.time.set_timer(self.ADDMISSLE, self.rate)

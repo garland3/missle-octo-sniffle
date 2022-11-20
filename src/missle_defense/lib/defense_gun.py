@@ -1,7 +1,7 @@
 import math
 import pygame
 
-from lib.bullet import Bullet
+from missle_defense.lib.bullet import Bullet
 
 class DefenseGun:
     def __init__(self, screen_width, screen_height) -> None:
