@@ -113,7 +113,8 @@ if attempt1==1:
         return env
     
     # env = DummyVecEnv([lambda: make_env(),lambda: make_env()])
-    env = DummyVecEnv([ Missle_Env for i in range(4)])
+    env = DummyVecEnv([ Missle_Env for i in range(2)])
+    # env = make_env()
     
     # Wrap the VecEnv
     # env = VecExtractDictObs(envdummy, key="observation")
@@ -122,8 +123,12 @@ if attempt1==1:
     # Instantiate the env
     # env = Missle_Env()
     # # Train the agent
-    model = DQN('MlpPolicy', env, verbose=1, buffer_size=10000,tensorboard_log="./tensor_board/")# 
-    model.learn(total_timesteps=500000, progress_bar=True)
+    # from stable_baselines3 import TD3
+    from stable_baselines3 import PPO
+    # model = DQN('MlpPolicy', env, verbose=1, buffer_size=5000,tensorboard_log="./tensor_board/")# 
+    model = PPO('MlpPolicy', env, verbose=1, n_steps=1000, tensorboard_log="./tensor_board/")# 
+    
+    model.learn(total_timesteps=500000, progress_bar=True, log_interval=100)
     model.save("dqn_missle")
     
     # tensorboard --logdir ./tensor_board/

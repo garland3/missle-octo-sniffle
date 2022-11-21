@@ -25,9 +25,12 @@ from missle_defense.lib.defense_gun import DefenseGun
 SCREEN_WIDTH = 640
 SCREEN_HEIGHT = 480
 
+pygame.init()
 
 class MissleGame:
     def __init__(self, gym_env =False, show_screen=True):
+       
+        
         print("starting game")
         # Set up the drawing window
         self.clock = pygame.time.Clock()
@@ -35,8 +38,8 @@ class MissleGame:
         # print(f"gym_env Bool: {gym_env}")
 
         self.show_screen = show_screen
-        if self.show_screen is True:
-            self.screen = pygame.display.set_mode([SCREEN_WIDTH, SCREEN_HEIGHT])
+        # if self.show_screen is True:
+        self.screen = pygame.display.set_mode([SCREEN_WIDTH, SCREEN_HEIGHT])
         # Run until the user asks to quit
 
         self.missles = pygame.sprite.Group()
@@ -134,8 +137,8 @@ class MissleGame:
             
 
         # Fill the background with white
-        if self.show_screen is True:
-            self.screen.fill((255, 255, 255))
+        # if self.show_screen is True:
+        self.screen.fill((255, 255, 255))
 
         # Check if the bullet has collided with anything.
         for b in self.bullets:
@@ -158,22 +161,27 @@ class MissleGame:
                 return
 
         self.all_objects.update()
-        if self.show_screen is True:
-            for m in self.all_objects:
-                self.screen.blit(m.surf, m.rect)
+        # if self.show_screen is True:
+        for m in self.all_objects:
+            self.screen.blit(m.surf, m.rect)
 
         # defense_gun.draw_rectangle(SCREEN_WIDTH/2/2, SCREEN_HEIGHT//2, 30, 20, (0, 0, 255), screen, rotation)
         self.defense_gun.update_gun_angle(self.rotation)
-        if self.show_screen is True:
-            self.defense_gun.draw_gun(self.screen)
+        # if self.show_screen is True:
+        self.defense_gun.draw_gun(self.screen)
             
         # rotation += 2
 
         # Flip the display
-        pygame.display.flip()
+        if self.show_screen is True:
+            pygame.display.flip()
         self.cnt += 1
         # if self.cnt % 100 == 0:
         #     print(self.cnt)
+        
+    # def end_the_game(self):
+    #     # pygame.display.quit()
+        
 
     def run(self):
         """
@@ -188,7 +196,11 @@ class MissleGame:
             self.clock.tick(20)
 
         # Done! Time to quit.
+        # self.end_the_game()
         pygame.quit()
+        print("game ended")
+        return
+        
 
 
 if __name__ == "__main__":
