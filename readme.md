@@ -15,4 +15,6 @@
 
 ```ps
 conda activate missle_defense
+# RUN the RL game on a cuda enable computer with . 
+python src/missle_agent/missle_agent_skrl.py 
 ```
