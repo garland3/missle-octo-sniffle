@@ -6,14 +6,15 @@ from skrl.memories.torch import Memory
 from skrl.memories.torch import RandomMemory
 
 # Import the skrl components to build the RL system
-from skrl.models.torch import Model, DeterministicMixin
+from skrl.models.torch import Model, DeterministicMixin, GaussianMixin
 
 
 from skrl.agents.torch.ddpg import DDPG, DDPG_DEFAULT_CONFIG
 # from skrl.memories.torch.base import RandomMemory, Memory
 from skrl.resources.noises.torch import OrnsteinUhlenbeckNoise
-from skrl.trainers.torch import SequentialTrainer
+from skrl.trainers.torch import SequentialTrainer, ParallelTrainer
 from skrl.trainers.torch.sequential import SEQUENTIAL_TRAINER_DEFAULT_CONFIG
+from skrl.trainers.torch.parallel import PARALLEL_TRAINER_DEFAULT_CONFIG
 # from skrl.resources.preprocessors.torch import Normalizer
 from skrl.resources.preprocessors.torch import RunningStandardScaler
 from skrl.envs.torch import wrap_env
@@ -28,33 +29,49 @@ os.environ["DISPLAY"] = ":3"
 
 models = {}
 env1 = Missle_Env_ObAsVector()
+# env_multiple = gym.vector.make("Pendulum-v1", num_envs=10, asynchronous=False)
 env = wrap_env(env1,  wrapper="gym")
 env.device = 'cuda'
 device = env.device
 
 
 
-class DeterministicActor(DeterministicMixin, Model):
+class G_Actor(GaussianMixin, Model):
+
+
     def __init__(self, observation_space, action_space, device, clip_actions=True):
         Model.__init__(self, observation_space, action_space, device)
-        DeterministicMixin.__init__(self, clip_actions)
+        GaussianMixin.__init__(self, clip_actions)
 
-        self.linear_layer_1 = nn.Linear(self.num_observations, 600)
-        self.linear_layer_2 = nn.Linear(600, 300)
-        self.action_layer = nn.Linear(300, self.num_actions)
-        print(self.linear_layer_1)
+        self.mean_model = self.make_model()
+        self.log_std_model = self.make_model()            
 
+    def make_model(self, hidden_size=64):
+        n_layers = 4
+        layer_list = []
+        self.linear_layer_1 = nn.Linear(self.num_observations, hidden_size)
+        layer_list.append(self.linear_layer_1)
+        for i in range(n_layers):
+            # layer_list.append(nn.BatchNorm1d(hidden_size))
+            layer_list.append(nn.Linear(hidden_size, hidden_size))
+            layer_list.append(nn.ReLU())
+        layer_list.append(nn.Linear(hidden_size, self.num_actions))
+        return nn.Sequential(*layer_list)
+        
     def compute(self, states, taken_actions, role):
-        x = F.relu(self.linear_layer_1(states))
-        x = F.relu(self.linear_layer_2(x))
-        return 2 * torch.tanh(self.action_layer(x))  # Pendulum-v1 action_space is -2 to 2
+        
+        means  = self.mean_model(states)
+        std = self.log_std_model(states)
+        return means, std
+        # x = F.relu(self.linear_layer_2(x))
+        # return 3 * torch.tanh(self.action_layer(x)) , self.log_std_parameter  # Pendulum-v1 action_space is -2 to 2
 
 # class PreprocessStates(skrl.resources.torch.preprocessors.torch.Preprocessor):
 
 memory = RandomMemory(memory_size=100000, num_envs=env.num_envs, device=device)
 
-models['q_network'] = DeterministicActor(env.observation_space, env.action_space, device, clip_actions=True)
-models['target_q_network'] = DeterministicActor(env.observation_space, env.action_space, device, clip_actions=True)
+models['q_network'] = G_Actor(env.observation_space, env.action_space, device, clip_actions=True)
+models['target_q_network'] = G_Actor(env.observation_space, env.action_space, device, clip_actions=True)
 
 config = copy.deepcopy(DDQN_DEFAULT_CONFIG)
 # config.update({})

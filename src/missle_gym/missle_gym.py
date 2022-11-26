@@ -93,7 +93,7 @@ class Missle_Env_ObAsVector(gym.Env):
         
         high = max(SCREEN_WIDTH, SCREEN_HEIGHT)
         # self.observation_dtype = np.int16
-        self.observation_dtype = int
+        self.observation_dtype = float
         
         self.observe_n_missles = 60
         self.previous_n_frames = 5
