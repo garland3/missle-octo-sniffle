@@ -1,5 +1,8 @@
 tensor_board
+runs
 requirements_base.txt
+missle_ddqn
+*.zip
 # Temporary and binary files
 *_missle.zip
 images

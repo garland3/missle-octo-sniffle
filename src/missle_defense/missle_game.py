@@ -29,8 +29,6 @@ pygame.init()
 
 class MissleGame:
     def __init__(self, gym_env =False, show_screen=True):
-       
-        
         print("starting game")
         # Set up the drawing window
         self.clock = pygame.time.Clock()
@@ -47,11 +45,9 @@ class MissleGame:
 
 
         self.missle_speed = 2.0
-
         self.ADDMISSLE = pygame.USEREVENT + 1
         self.rate = 50
         # pygame.time.set_timer(self.ADDMISSLE, self.rate)
-
         # Create a custom event for adding more bullets to the ammo box.        
         # self.ADD_BULLET = pygame.USEREVENT + 2
         # self.rate_new_bullet = 500
@@ -100,7 +96,6 @@ class MissleGame:
         if self.cnt % self.rate == 0:
             _ = self.make_missle(self.missle_speed)
             
-                
         if self.gym_env is False:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -170,8 +165,6 @@ class MissleGame:
         # if self.show_screen is True:
         self.defense_gun.draw_gun(self.screen)
             
-        # rotation += 2
-
         # Flip the display
         if self.show_screen is True:
             pygame.display.flip()
