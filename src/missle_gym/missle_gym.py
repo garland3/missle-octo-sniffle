@@ -1,4 +1,6 @@
 import os
+from pathlib import Path
+import random
 import gym
 from gym import spaces
 import pygame
@@ -93,13 +95,17 @@ class Missle_Env_ObAsVector(gym.Env):
         
         high = max(SCREEN_WIDTH, SCREEN_HEIGHT)
         # self.observation_dtype = np.int16
-        self.observation_dtype = float
+        self.observation_dtype = int
         
-        self.observe_n_missles = 60
+        self.observe_n_missles_or_bullets = 100
+        # self.observe_n_bullets = 60
         self.previous_n_frames = 5
-        # need the, x and y position of each missle. 
-        # also, need the last 5 frames of game state
-        self.ob_size = (2, self.observe_n_missles,self.previous_n_frames)
+
+        # the 3 is for the missles and bullets and then the angle of the gun
+        # the 2 is for the x and y position
+        # the 5 is for the last 5 frames
+        self.ob_size = (3, 2, self.observe_n_missles_or_bullets,self.previous_n_frames)
+        print(f"Observation size: {self.ob_size}")
         self.observation_space = spaces.Box(low=0, high=high,
                                             shape=self.ob_size, dtype=self.observation_dtype)
         # self.observation = np.random.randint(0, high,size=ob_size, dtype=np.uint16)
@@ -110,23 +116,47 @@ class Missle_Env_ObAsVector(gym.Env):
        
 
     def update_observation(self):
-        self.observation = np.roll(self.observation, -1, axis=2)
+        self.observation = np.roll(self.observation, -1, axis=3)
         for i,m in enumerate(self.game.missles):
-            if i>=self.observe_n_missles-1:
+            if i>=self.observe_n_missles_or_bullets-1:
                 break
-            self.observation[0, i] = m.center[0]
-            self.observation[1, i] = m.center[1]
-        
-        # fig, axs = plt.subplots(1,self.previous_n_frames, figsize=(20, 5))
-        # for i in range(self.previous_n_frames):
-        #     for j in range(self.observe_n_missles):
-        #         axs[i].scatter(self.observation[0,j,i], self.observation[1,j,i])
-        #     axs[i].set_xlim(0, SCREEN_WIDTH)
-        #     axs[i].set_ylim(0, SCREEN_HEIGHT)
+            self.observation[0,0, i,0] = m.center[0]
+            self.observation[0,1, i,0] = m.center[1]
             
-        #     # axs[i].imshow(self.observation[:,:,i])
-        # os.makedirs("images", exist_ok=True)
-        # plt.savefig(f"images/observation{self.game.cnt}.png")
+        for i,b in enumerate(self.game.bullets):
+            if i>=self.observe_n_missles_or_bullets-1:
+                break
+            self.observation[1,0, i,0] = b.center[0]
+            self.observation[1,1, i,0] = b.center[1]
+        
+        # record the angle of the gun
+        k,i = 2,0
+        self.observation[k,i, 0,0] = self.game.rotation
+        
+        if random.random()<0.0001:
+            # print(f"observation: {self.observation}")
+            print("Sample observation:")
+            os.makedirs("images", exist_ok=True)
+            images_dir = Path("images")
+            pngs_cnt = len(list(images_dir.glob("*.png")))
+            fig, axs = plt.subplots(1,self.previous_n_frames, figsize=(20, 5))
+            for i in range(self.previous_n_frames):
+                for j in range(self.observe_n_missles_or_bullets):
+                    axs[i].scatter(self.observation[0,0,j,i], self.observation[0,1,j,i], c='r')
+                for j in range(self.observe_n_missles_or_bullets):
+                    axs[i].scatter(self.observation[1,0,j,i], self.observation[1,1,j,i], c='b')
+                axs[i].set_xlim(0, SCREEN_WIDTH)
+                axs[i].set_ylim(0, SCREEN_HEIGHT)
+                rotation = self.observation[2,0,0,i]
+                axs[i].set_title(f"frame {i} cnt would be: {self.game.cnt-i} rotation: {rotation}")
+                axs[i].invert_yaxis()
+            plt.tight_layout()
+            filename = f"images/{pngs_cnt}.png"
+            plt.savefig(filename)
+            plt.close('all')
+                
+                # axs[i].imshow(self.observation[:,:,i])
+            # plt.savefig(f"images/observation{self.game.cnt}.png")
         return self.observation
             
         

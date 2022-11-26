@@ -22,8 +22,11 @@ from missle_defense.lib.missle import Missle
 from missle_defense.lib.defense_gun import DefenseGun
 
 # Define constants for the screen width and height
-SCREEN_WIDTH = 640
-SCREEN_HEIGHT = 480
+# SCREEN_WIDTH = 640
+# SCREEN_HEIGHT = 480
+
+SCREEN_WIDTH = 300
+SCREEN_HEIGHT = 300
 
 pygame.init()
 
@@ -129,7 +132,10 @@ class MissleGame:
                     self.rotation -= 3
                 if action == 2:
                     self.process_shoot()
-            
+        
+        # wrap the rotation
+        if self.rotation > 360:
+            self.rotation = self.rotation - 360            
 
         # Fill the background with white
         # if self.show_screen is True:

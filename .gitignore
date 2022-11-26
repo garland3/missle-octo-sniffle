@@ -2,6 +2,7 @@ tensor_board
 runs
 requirements_base.txt
 missle_ddqn
+memories
 *.zip
 # Temporary and binary files
 *_missle.zip
