@@ -116,7 +116,10 @@ class Missle_Env_ObAsVector(gym.Env):
        
 
     def update_observation(self):
-        self.observation = np.roll(self.observation, -1, axis=3)
+        self.observation = np.roll(self.observation, 1, axis=3)
+        all_but_last = self.ob_size[0:-1]
+        # clear the first frame
+        self.observation[:,:,:,0]=np.zeros(all_but_last, dtype=self.observation_dtype)
         for i,m in enumerate(self.game.missles):
             if i>=self.observe_n_missles_or_bullets-1:
                 break
@@ -154,6 +157,7 @@ class Missle_Env_ObAsVector(gym.Env):
             filename = f"images/{pngs_cnt}.png"
             plt.savefig(filename)
             plt.close('all')
+            np.save(f"images/{pngs_cnt}.npy", self.observation)
                 
                 # axs[i].imshow(self.observation[:,:,i])
             # plt.savefig(f"images/observation{self.game.cnt}.png")

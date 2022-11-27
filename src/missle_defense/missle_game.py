@@ -47,7 +47,7 @@ class MissleGame:
         self.all_objects = pygame.sprite.Group()
 
 
-        self.missle_speed = 2.0
+        self.missle_speed = 1.0
         self.ADDMISSLE = pygame.USEREVENT + 1
         self.rate = 50
         # pygame.time.set_timer(self.ADDMISSLE, self.rate)
@@ -125,17 +125,22 @@ class MissleGame:
         if self.gym_env is True:
             # print(f"action: {action}")
             # For the gym, we need to provide the action
+            # action = int(action)
             if action is not None:
                 if action == 0:
                     self.rotation += 3
-                if action == 1:
+                elif action == 1:
                     self.rotation -= 3
-                if action == 2:
+                elif action == 2:
                     self.process_shoot()
+                else:
+                    raise ValueError(f"action not recognized, {action}, type: {type(action)}")
         
         # wrap the rotation
         if self.rotation > 360:
-            self.rotation = self.rotation - 360            
+            self.rotation = self.rotation - 360  
+        if self.rotation < 0:
+            self.rotation = self.rotation + 360          
 
         # Fill the background with white
         # if self.show_screen is True:
@@ -146,7 +151,7 @@ class MissleGame:
             hit_missle = pygame.sprite.spritecollide(b, self.missles, True)
             if hit_missle:
                 b.kill()
-                self.rate -= 10
+                self.rate -= 1
                 if self.rate<2:
                     self.rate = 2
                 self.missle_speed += 0.05
@@ -157,7 +162,7 @@ class MissleGame:
         for m in self.missles:
             if m.rect.x > SCREEN_WIDTH:
                 # print("missle past screen")
-                print(f"Final score is {self.score}")
+                print(f"Final score is {self.score} after {self.cnt} frames")
                 self.running = False
                 return
 

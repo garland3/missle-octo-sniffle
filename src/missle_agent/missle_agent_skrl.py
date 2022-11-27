@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from skrl.memories.torch import Memory
 from skrl.memories.torch import RandomMemory, PrioritizedMemory
-
+import numpy as np
 # Import the skrl components to build the RL system
 from skrl.models.torch import Model, DeterministicMixin, GaussianMixin
 
@@ -39,8 +39,10 @@ device = env.device
 # images_dir = Path("images")
 if  os.path.exists("images"):
     shutil.rmtree("images")
-    # os.unlink("images")
     print("images dir deleted")
+if os.path.exists("numpyarrays"):
+    shutil.rmtree("numpyarrays")
+    print("numpyarrays dir deleted")
     
 
 
@@ -102,6 +104,7 @@ class D_Actor(DeterministicMixin, Model):
         
         
         means = self.final_layer(attn_output2)
+        means = 1+means*3
         # print("attn_output.shape", attn_output.shape)
         # means = []
         # means  = self.mean_model(states)
@@ -129,6 +132,7 @@ config['experiment']['checkpoint_interval'] = 5000
 config['experiment']['random_timesteps'] = 10000
 config['exploration']['time_steps'] = 90000
 config['update_interval'] = 1000
+config['target_update_interval'] =config['update_interval'] * 100
 config['learning_rate'] = 1e-3
 
 # n = env.observation_space
@@ -139,8 +143,70 @@ config['value_preprocessor_kwargs']={'size' : 1, 'device' :  device}
 
 # config['value_preprocessor'] = RunningStandardScaler(env.action_space, device)
 
+class myDDQN(DDQN):
+    def _update(self, timestep: int, timesteps: int) -> None:
+        """Algorithm's main update step
 
-agent =DDQN(models,memory, observation_space = env.observation_space, action_space=env.action_space, cfg = config)#
+        :param timestep: Current timestep
+        :type timestep: int
+        :param timesteps: Number of timesteps
+        :type timesteps: int
+        """
+        # sample a batch from memory
+        sampled_states, sampled_actions, sampled_rewards, sampled_next_states, sampled_dones = \
+            self.memory.sample(names=self.tensors_names, batch_size=self._batch_size)[0]
+
+        # gradient steps
+        for gradient_step in range(self._gradient_steps):
+
+            sampled_states = self._state_preprocessor(sampled_states, train=not gradient_step)
+            sampled_next_states = self._state_preprocessor(sampled_next_states)
+            
+
+            # compute target values
+            with torch.no_grad():
+                self.track_data("sampled_states / mean_value", torch.mean(sampled_states).item())
+                # hist, _  = np.histogram(sampled_actions.cpu().numpy(), bins = 3, density=True )
+                # self.writer.add_histogram("sampled_actions / histogram",hist , timestep)
+                self.writer.add_histogram("sampled_actions / histogram",sampled_actions , timestep)
+                
+                
+                next_q_values, _, _ = self.target_q_network.act(states=sampled_next_states, taken_actions=None, role="target_q_network")
+                
+                target_q_values = torch.gather(next_q_values, dim=1, index=torch.argmax(self.q_network.act(states=sampled_next_states, \
+                    taken_actions=None, role="q_network")[0], dim=1, keepdim=True))
+                target_values = sampled_rewards + self._discount_factor * sampled_dones.logical_not() * target_q_values
+
+            # compute Q-network loss
+            q_values = torch.gather(self.q_network.act(states=sampled_states, taken_actions=None, role="q_network")[0], 
+                                    dim=1, index=sampled_actions.long())
+
+            q_network_loss = F.mse_loss(q_values, target_values)
+            
+            # optimize Q-network
+            self.optimizer.zero_grad()
+            q_network_loss.backward()
+            self.optimizer.step()
+
+            # update target network
+            if not timestep % self._target_update_interval:
+                self.target_q_network.update_parameters(self.q_network, polyak=self._polyak)
+
+            # update learning rate
+            if self._learning_rate_scheduler:
+                self.scheduler.step()
+
+            # record data
+            self.track_data("Loss / Q-network loss", q_network_loss.item())
+
+            self.track_data("Target / Target (max)", torch.max(target_values).item())
+            self.track_data("Target / Target (min)", torch.min(target_values).item())
+            self.track_data("Target / Target (mean)", torch.mean(target_values).item())
+
+            if self._learning_rate_scheduler:
+                self.track_data("Learning / Learning rate", self.scheduler.get_last_lr()[0])
+
+agent =myDDQN(models,memory, observation_space = env.observation_space, action_space=env.action_space, cfg = config)#
 print(type(agent), "agent type. ")
 
 
