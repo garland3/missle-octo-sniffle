@@ -93,7 +93,7 @@ class Missle_Env_ObAsVector(gym.Env):
         self.game = MissleGame(True, False)
         # self.observation_space = spaces.Box(low=-10,high=SCREEN_WIDTH, shape(data_per_missle, dtype=np.uint8)
         
-        high = max(SCREEN_WIDTH, SCREEN_HEIGHT)
+        self.high = max(SCREEN_WIDTH, SCREEN_HEIGHT)
         # self.observation_dtype = np.int16
         self.observation_dtype = int
         
@@ -102,11 +102,12 @@ class Missle_Env_ObAsVector(gym.Env):
         self.previous_n_frames = 5
 
         # the 3 is for the missles and bullets and then the angle of the gun
-        # the 2 is for the x and y position
+        # the 20 is for the x and y position (update, try forier embedding like in the paper)
+        self.embedding_size = 10
         # the 5 is for the last 5 frames
-        self.ob_size = (3, 2, self.observe_n_missles_or_bullets,self.previous_n_frames)
+        self.ob_size = (3, 2*self.embedding_size, self.observe_n_missles_or_bullets,self.previous_n_frames)
         print(f"Observation size: {self.ob_size}")
-        self.observation_space = spaces.Box(low=0, high=high,
+        self.observation_space = spaces.Box(low=0, high=self.high,
                                             shape=self.ob_size, dtype=self.observation_dtype)
         # self.observation = np.random.randint(0, high,size=ob_size, dtype=np.uint16)
         self.observation = np.zeros(self.ob_size, dtype=self.observation_dtype)
@@ -123,14 +124,14 @@ class Missle_Env_ObAsVector(gym.Env):
         for i,m in enumerate(self.game.missles):
             if i>=self.observe_n_missles_or_bullets-1:
                 break
-            self.observation[0,0, i,0] = m.center[0]
-            self.observation[0,1, i,0] = m.center[1]
+            self.observation[0,0:self.embedding_size , i,0] = [np.sin(i*np.pi*m.center[0]/ self.high) for i in range(self.embedding_size)]
+            self.observation[0, self.embedding_size:, i,0] = [np.sin(i*np.pi*m.center[1]/ self.high) for i in range(self.embedding_size)]
             
         for i,b in enumerate(self.game.bullets):
             if i>=self.observe_n_missles_or_bullets-1:
                 break
-            self.observation[1,0, i,0] = b.center[0]
-            self.observation[1,1, i,0] = b.center[1]
+            self.observation[1,0, i,0] = [np.sin(i*np.pi*b.center[0]/ self.high) for i in range(self.embedding_size)] # b.center[0]
+            self.observation[1,1, i,0] = [np.sin(i*np.pi*b.center[1]/ self.high) for i in range(self.embedding_size)]
         
         # record the angle of the gun
         k,i = 2,0
@@ -138,26 +139,30 @@ class Missle_Env_ObAsVector(gym.Env):
         
         if random.random()<0.0001:
             # print(f"observation: {self.observation}")
-            print("Sample observation:")
-            os.makedirs("images", exist_ok=True)
-            images_dir = Path("images")
-            pngs_cnt = len(list(images_dir.glob("*.png")))
-            fig, axs = plt.subplots(1,self.previous_n_frames, figsize=(20, 5))
-            for i in range(self.previous_n_frames):
-                for j in range(self.observe_n_missles_or_bullets):
-                    axs[i].scatter(self.observation[0,0,j,i], self.observation[0,1,j,i], c='r')
-                for j in range(self.observe_n_missles_or_bullets):
-                    axs[i].scatter(self.observation[1,0,j,i], self.observation[1,1,j,i], c='b')
-                axs[i].set_xlim(0, SCREEN_WIDTH)
-                axs[i].set_ylim(0, SCREEN_HEIGHT)
-                rotation = self.observation[2,0,0,i]
-                axs[i].set_title(f"frame {i} cnt would be: {self.game.cnt-i} rotation: {rotation}")
-                axs[i].invert_yaxis()
-            plt.tight_layout()
-            filename = f"images/{pngs_cnt}.png"
-            plt.savefig(filename)
-            plt.close('all')
-            np.save(f"images/{pngs_cnt}.npy", self.observation)
+            print("Sample observation to img and np array:")
+            # os.makedirs("images", exist_ok=True)
+            # images_dir = Path("images")
+            # pngs_cnt = len(list(images_dir.glob("*.png")))
+            # fig, axs = plt.subplots(1,self.previous_n_frames, figsize=(20, 5))
+            # for i in range(self.previous_n_frames):
+            #     for j in range(self.observe_n_missles_or_bullets):
+            #         axs[i].scatter(self.observation[0,0,j,i], self.observation[0,1,j,i], c='r')
+            #     for j in range(self.observe_n_missles_or_bullets):
+            #         axs[i].scatter(self.observation[1,0,j,i], self.observation[1,1,j,i], c='b')
+            #     axs[i].set_xlim(0, SCREEN_WIDTH)
+            #     axs[i].set_ylim(0, SCREEN_HEIGHT)
+            #     rotation = self.observation[2,0,0,i]
+            #     axs[i].set_title(f"frame {i} cnt would be: {self.game.cnt-i} rotation: {rotation}")
+            #     axs[i].invert_yaxis()
+            # plt.tight_layout()
+            # filename = f"images/{pngs_cnt}.png"
+            # plt.savefig(filename)
+            # plt.close('all')
+            os.makedirs("numpyarrays", exist_ok=True)
+            numpyarrays_dir = Path("numpyarrays")
+            number_of_numpyarrays = len(list(numpyarrays_dir.glob("*.npy")))            
+            
+            np.save(f"numpyarrays/{number_of_numpyarrays}.npy", self.observation)
                 
                 # axs[i].imshow(self.observation[:,:,i])
             # plt.savefig(f"images/observation{self.game.cnt}.png")
