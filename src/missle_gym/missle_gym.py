@@ -97,9 +97,9 @@ class Missle_Env_ObAsVector(gym.Env):
         # self.observation_dtype = np.int16
         self.observation_dtype = int
         
-        self.observe_n_missles_or_bullets = 100
+        self.observe_n_missles_or_bullets = 50
         # self.observe_n_bullets = 60
-        self.previous_n_frames = 5
+        self.previous_n_frames = 3
 
         # the 3 is for the missles and bullets and then the angle of the gun
         # the 20 is for the x and y position (update, try forier embedding like in the paper)
@@ -124,14 +124,14 @@ class Missle_Env_ObAsVector(gym.Env):
         for i,m in enumerate(self.game.missles):
             if i>=self.observe_n_missles_or_bullets-1:
                 break
-            self.observation[0,0:self.embedding_size , i,0] = [np.sin(i*np.pi*m.center[0]/ self.high) for i in range(self.embedding_size)]
-            self.observation[0, self.embedding_size:, i,0] = [np.sin(i*np.pi*m.center[1]/ self.high) for i in range(self.embedding_size)]
+            self.observation[0,0:self.embedding_size , i,0] = np.array([np.sin(i*np.pi*m.center[0]/ self.high) for i in range(self.embedding_size)])
+            self.observation[0, self.embedding_size:, i,0] =np.array( [np.sin(i*np.pi*m.center[1]/ self.high) for i in range(self.embedding_size)])
             
         for i,b in enumerate(self.game.bullets):
             if i>=self.observe_n_missles_or_bullets-1:
                 break
-            self.observation[1,0, i,0] = [np.sin(i*np.pi*b.center[0]/ self.high) for i in range(self.embedding_size)] # b.center[0]
-            self.observation[1,1, i,0] = [np.sin(i*np.pi*b.center[1]/ self.high) for i in range(self.embedding_size)]
+            self.observation[1,0:self.embedding_size , i,0] =np.array( [np.sin(i*np.pi*b.center[0]/ self.high) for i in range(self.embedding_size)]) # b.center[0]
+            self.observation[1,self.embedding_size:, i,0] =np.array( [np.sin(i*np.pi*b.center[1]/ self.high) for i in range(self.embedding_size)])
         
         # record the angle of the gun
         k,i = 2,0

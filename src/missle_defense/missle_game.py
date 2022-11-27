@@ -162,7 +162,7 @@ class MissleGame:
         for m in self.missles:
             if m.rect.x > SCREEN_WIDTH:
                 # print("missle past screen")
-                print(f"Final score is {self.score} after {self.cnt} frames")
+                print(f"END after {self.cnt} frames. Final score is {self.score}")
                 self.running = False
                 return
 

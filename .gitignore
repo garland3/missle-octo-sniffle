@@ -3,6 +3,7 @@ runs
 requirements_base.txt
 missle_ddqn
 memories
+numpyarrays
 *.zip
 # Temporary and binary files
 *_missle.zip
