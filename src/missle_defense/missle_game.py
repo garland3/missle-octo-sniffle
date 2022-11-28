@@ -25,8 +25,8 @@ from missle_defense.lib.defense_gun import DefenseGun
 # SCREEN_WIDTH = 640
 # SCREEN_HEIGHT = 480
 
-SCREEN_WIDTH = 300
-SCREEN_HEIGHT = 300
+SCREEN_WIDTH = 100
+SCREEN_HEIGHT = 100
 
 pygame.init()
 
@@ -128,11 +128,11 @@ class MissleGame:
             # action = int(action)
             if action is not None:
                 if action == 0:
-                    self.rotation += 3
-                elif action == 1:
-                    self.rotation -= 3
-                elif action == 2:
                     self.process_shoot()
+                elif action == 1:
+                    self.rotation += 3
+                elif action == 2:
+                    self.rotation -= 3
                 else:
                     raise ValueError(f"action not recognized, {action}, type: {type(action)}")
         
@@ -155,9 +155,9 @@ class MissleGame:
                 if self.rate<2:
                     self.rate = 2
                 self.missle_speed += 0.05
+                self.score += 100
                 print(f"hit!!. New self.rate is {self.rate} and new speed is {self.missle_speed}, score is {self.score}")
                 pygame.time.set_timer(self.ADDMISSLE, self.rate)
-                self.score += 100
 
         for m in self.missles:
             if m.rect.x > SCREEN_WIDTH:

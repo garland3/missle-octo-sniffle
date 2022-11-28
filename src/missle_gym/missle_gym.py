@@ -1,3 +1,4 @@
+import math
 import os
 from pathlib import Path
 import random
@@ -86,24 +87,25 @@ class Missle_Env_ObAsVector(gym.Env):
         # Example when using discrete actions:
         self.action_space = spaces.Discrete(N_DISCRETE_ACTIONS)
         self.action_space.low = 0
-        self.action_space.high = 3
+        self.action_space.high = 2
+        self.action_range = self.action_space.high - self.action_space.low
         # Example for using image as input:
         # self.observation_space = spaces.Box(low=0, high=255,
         #                                     shape=(HEIGHT, WIDTH, N_CHANNELS), dtype=np.uint8)
         self.game = MissleGame(True, False)
         # self.observation_space = spaces.Box(low=-10,high=SCREEN_WIDTH, shape(data_per_missle, dtype=np.uint8)
         
-        self.high = max(SCREEN_WIDTH, SCREEN_HEIGHT)
+        self.high = max(SCREEN_WIDTH, SCREEN_HEIGHT, 360) # 360 is the max angle
         # self.observation_dtype = np.int16
-        self.observation_dtype = int
+        self.observation_dtype = float
         
-        self.observe_n_missles_or_bullets = 50
+        self.observe_n_missles_or_bullets = 5
         # self.observe_n_bullets = 60
-        self.previous_n_frames = 3
+        self.previous_n_frames = 10
 
         # the 3 is for the missles and bullets and then the angle of the gun
         # the 20 is for the x and y position (update, try forier embedding like in the paper)
-        self.embedding_size = 10
+        self.embedding_size = 1
         # the 5 is for the last 5 frames
         self.ob_size = (3, 2*self.embedding_size, self.observe_n_missles_or_bullets,self.previous_n_frames)
         print(f"Observation size: {self.ob_size}")
@@ -111,6 +113,8 @@ class Missle_Env_ObAsVector(gym.Env):
                                             shape=self.ob_size, dtype=self.observation_dtype)
         # self.observation = np.random.randint(0, high,size=ob_size, dtype=np.uint16)
         self.observation = np.zeros(self.ob_size, dtype=self.observation_dtype)
+        
+        self.games_played = 0
         
     # def init(self, **kwargs):
     #     self.
@@ -124,45 +128,51 @@ class Missle_Env_ObAsVector(gym.Env):
         for i,m in enumerate(self.game.missles):
             if i>=self.observe_n_missles_or_bullets-1:
                 break
-            self.observation[0,0:self.embedding_size , i,0] = np.array([np.sin(i*np.pi*m.center[0]/ self.high) for i in range(self.embedding_size)])
-            self.observation[0, self.embedding_size:, i,0] =np.array( [np.sin(i*np.pi*m.center[1]/ self.high) for i in range(self.embedding_size)])
+            self.observation[0,0 , i,0] =m.center[0]
+            self.observation[0,1, i,0] =m.center[1]
+            
+            # self.observation[0,0:self.embedding_size , i,0] = np.array([np.sin(i*np.pi*m.center[0]/ self.high) for i in range(self.embedding_size)])
+            # self.observation[0, self.embedding_size:, i,0] =np.array( [np.sin(i*np.pi*m.center[1]/ self.high) for i in range(self.embedding_size)])
             
         for i,b in enumerate(self.game.bullets):
             if i>=self.observe_n_missles_or_bullets-1:
                 break
-            self.observation[1,0:self.embedding_size , i,0] =np.array( [np.sin(i*np.pi*b.center[0]/ self.high) for i in range(self.embedding_size)]) # b.center[0]
-            self.observation[1,self.embedding_size:, i,0] =np.array( [np.sin(i*np.pi*b.center[1]/ self.high) for i in range(self.embedding_size)])
+            self.observation[1,0, i,0] =b.center[0]
+            self.observation[1,1, i,0] =b.center[1]
         
         # record the angle of the gun
         k,i = 2,0
-        self.observation[k,i, 0,0] = self.game.rotation
+        self.observation[k,i, 0,0] =np.sin( (math.pi / 180) * self.game.rotation)
+        self.observation[k,i, 1,0] =np.cos(  (math.pi / 180) *self.game.rotation)
         
-        if random.random()<0.0001:
+        if self.games_played% 200==100:
             # print(f"observation: {self.observation}")
-            print("Sample observation to img and np array:")
+            print(f"Sample observation to img and np array: {self.games_played}_{self.game.cnt}")
+            os.makedirs(f"images/{self.games_played}", exist_ok=True)
             # os.makedirs("images", exist_ok=True)
+            
             # images_dir = Path("images")
             # pngs_cnt = len(list(images_dir.glob("*.png")))
-            # fig, axs = plt.subplots(1,self.previous_n_frames, figsize=(20, 5))
-            # for i in range(self.previous_n_frames):
-            #     for j in range(self.observe_n_missles_or_bullets):
-            #         axs[i].scatter(self.observation[0,0,j,i], self.observation[0,1,j,i], c='r')
-            #     for j in range(self.observe_n_missles_or_bullets):
-            #         axs[i].scatter(self.observation[1,0,j,i], self.observation[1,1,j,i], c='b')
-            #     axs[i].set_xlim(0, SCREEN_WIDTH)
-            #     axs[i].set_ylim(0, SCREEN_HEIGHT)
-            #     rotation = self.observation[2,0,0,i]
-            #     axs[i].set_title(f"frame {i} cnt would be: {self.game.cnt-i} rotation: {rotation}")
-            #     axs[i].invert_yaxis()
-            # plt.tight_layout()
-            # filename = f"images/{pngs_cnt}.png"
-            # plt.savefig(filename)
-            # plt.close('all')
+            fig, axs = plt.subplots(1,self.previous_n_frames, figsize=(20, 5))
+            for i in range(self.previous_n_frames):
+                for j in range(self.observe_n_missles_or_bullets):
+                    axs[i].scatter(self.observation[0,0,j,i], self.observation[0,1,j,i], c='r')
+                for j in range(self.observe_n_missles_or_bullets):
+                    axs[i].scatter(self.observation[1,0,j,i], self.observation[1,1,j,i], c='b')
+                axs[i].set_xlim(0, SCREEN_WIDTH)
+                axs[i].set_ylim(0, SCREEN_HEIGHT)
+                rotation = self.observation[2,0,0,i]
+                axs[i].set_title(f"frame {i} cnt would be: {self.game.cnt-i} rotation: {rotation}.\n games played: {self.games_played}")
+                axs[i].invert_yaxis()
+            plt.tight_layout()
+            filename = f"images/{self.games_played}/{self.games_played}_{self.game.cnt}.png"
+            plt.savefig(filename)
+            plt.close('all')
             os.makedirs("numpyarrays", exist_ok=True)
-            numpyarrays_dir = Path("numpyarrays")
-            number_of_numpyarrays = len(list(numpyarrays_dir.glob("*.npy")))            
+            # numpyarrays_dir = Path("numpyarrays")
+            # number_of_numpyarrays = len(list(numpyarrays_dir.glob("*.npy")))            
             
-            np.save(f"numpyarrays/{number_of_numpyarrays}.npy", self.observation)
+            np.save(f"numpyarrays/{self.games_played}_{self.game.cnt}.npy", self.observation)
                 
                 # axs[i].imshow(self.observation[:,:,i])
             # plt.savefig(f"images/observation{self.game.cnt}.png")
@@ -172,6 +182,8 @@ class Missle_Env_ObAsVector(gym.Env):
 
     def step(self, action):
         # ...
+        # print(f"step action {action}, games played: {self.games_played} and cnt: {self.game.cnt}")
+        # action-=1
         self.game.step(action)
         self.observation = self.update_observation()  # pygame.surfarray.array3d(self.game.screen)
         reward = self.game.score
@@ -183,7 +195,9 @@ class Missle_Env_ObAsVector(gym.Env):
     
     def reset(self):
         # del self.game
+        self.games_played += 1
         self.game = MissleGame(True, False)
+        self.observation = np.zeros(self.ob_size, dtype=self.observation_dtype)
         self.game.step()
         self.observation = self.update_observation()  # pygame.surfarray.array3d(self.game.screen)
         # print(f"resetting observation: {self.observation}")

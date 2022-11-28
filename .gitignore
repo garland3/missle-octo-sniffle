@@ -5,6 +5,7 @@ missle_ddqn
 memories
 numpyarrays
 *.zip
+*.mp4
 # Temporary and binary files
 *_missle.zip
 images

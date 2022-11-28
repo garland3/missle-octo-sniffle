@@ -18,6 +18,7 @@ conda activate missle_defense
 python src/missle_agent/missle_agent_skrl.py 
 ```
 
+<<<<<<< HEAD
 Run the game as a human with.
 
 ```bash
@@ -27,3 +28,11 @@ python .\src\missle_defense\missle_game.py
 
 * use the keyboard arrow keys to turn your gun
 * use the space bar to shoot
+=======
+```bash
+ffmpeg -i images/100/100_%d.png  myvideo100.mp4
+
+python utils/make_videos_from_saved_obs.py  
+
+```
+>>>>>>> 389ec42 (trying simplier model just to get things working)
