@@ -96,12 +96,13 @@ class Missle_Env_ObAsVector(gym.Env):
         # self.observation_space = spaces.Box(low=-10,high=SCREEN_WIDTH, shape(data_per_missle, dtype=np.uint8)
         
         self.high = max(SCREEN_WIDTH, SCREEN_HEIGHT, 360) # 360 is the max angle
+        self.high_position_only = max(SCREEN_WIDTH, SCREEN_HEIGHT)
         # self.observation_dtype = np.int16
         self.observation_dtype = float
         
         self.observe_n_missles_or_bullets = 5
         # self.observe_n_bullets = 60
-        self.previous_n_frames = 10
+        self.previous_n_frames = 3
 
         # the 3 is for the missles and bullets and then the angle of the gun
         # the 20 is for the x and y position (update, try forier embedding like in the paper)
@@ -112,24 +113,29 @@ class Missle_Env_ObAsVector(gym.Env):
         self.observation_space = spaces.Box(low=0, high=self.high,
                                             shape=self.ob_size, dtype=self.observation_dtype)
         # self.observation = np.random.randint(0, high,size=ob_size, dtype=np.uint16)
-        self.observation = np.zeros(self.ob_size, dtype=self.observation_dtype)
+        self.observation = self.norm_position(np.zeros(self.ob_size, dtype=self.observation_dtype))
         
         self.games_played = 0
         
     # def init(self, **kwargs):
     #     self.
        
+    def norm_position(self, position):
+        return (position - self.high_position_only) / self.high_position_only
+    
+    def de_norm_position(self, position):
+        return position * self.high_position_only + self.high_position_only
 
     def update_observation(self):
         self.observation = np.roll(self.observation, 1, axis=3)
         all_but_last = self.ob_size[0:-1]
         # clear the first frame
-        self.observation[:,:,:,0]=np.zeros(all_but_last, dtype=self.observation_dtype)
+        self.observation[:,:,:,0]=self.norm_position(np.zeros(all_but_last, dtype=self.observation_dtype))
         for i,m in enumerate(self.game.missles):
             if i>=self.observe_n_missles_or_bullets-1:
                 break
-            self.observation[0,0 , i,0] =m.center[0]
-            self.observation[0,1, i,0] =m.center[1]
+            self.observation[0,0 , i,0] = self.norm_position(m.center[0])
+            self.observation[0,1, i,0] =self.norm_position(m.center[1])
             
             # self.observation[0,0:self.embedding_size , i,0] = np.array([np.sin(i*np.pi*m.center[0]/ self.high) for i in range(self.embedding_size)])
             # self.observation[0, self.embedding_size:, i,0] =np.array( [np.sin(i*np.pi*m.center[1]/ self.high) for i in range(self.embedding_size)])
@@ -137,8 +143,8 @@ class Missle_Env_ObAsVector(gym.Env):
         for i,b in enumerate(self.game.bullets):
             if i>=self.observe_n_missles_or_bullets-1:
                 break
-            self.observation[1,0, i,0] =b.center[0]
-            self.observation[1,1, i,0] =b.center[1]
+            self.observation[1,0, i,0] =self.norm_position(b.center[0])
+            self.observation[1,1, i,0] =self.norm_position(b.center[1])
         
         # record the angle of the gun
         k,i = 2,0
@@ -156,9 +162,9 @@ class Missle_Env_ObAsVector(gym.Env):
             fig, axs = plt.subplots(1,self.previous_n_frames, figsize=(20, 5))
             for i in range(self.previous_n_frames):
                 for j in range(self.observe_n_missles_or_bullets):
-                    axs[i].scatter(self.observation[0,0,j,i], self.observation[0,1,j,i], c='r')
+                    axs[i].scatter(self.de_norm_position(self.observation[0,0,j,i]), self.de_norm_position(self.observation[0,1,j,i]), c='r')
                 for j in range(self.observe_n_missles_or_bullets):
-                    axs[i].scatter(self.observation[1,0,j,i], self.observation[1,1,j,i], c='b')
+                    axs[i].scatter(self.de_norm_position(self.observation[1,0,j,i]), self.de_norm_position(self.observation[1,1,j,i]), c='b')
                 axs[i].set_xlim(0, SCREEN_WIDTH)
                 axs[i].set_ylim(0, SCREEN_HEIGHT)
                 rotation = self.observation[2,0,0,i]
@@ -197,7 +203,7 @@ class Missle_Env_ObAsVector(gym.Env):
         # del self.game
         self.games_played += 1
         self.game = MissleGame(True, False)
-        self.observation = np.zeros(self.ob_size, dtype=self.observation_dtype)
+        # self.observation = np.zeros(self.ob_size, dtype=self.observation_dtype)
         self.game.step()
         self.observation = self.update_observation()  # pygame.surfarray.array3d(self.game.screen)
         # print(f"resetting observation: {self.observation}")

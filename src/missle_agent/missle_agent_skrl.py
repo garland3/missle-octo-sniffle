@@ -1,6 +1,7 @@
 import copy
 from pathlib import Path
 import shutil
+from matplotlib import pyplot as plt
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -61,7 +62,7 @@ class D_Actor(DeterministicMixin, Model):
         DeterministicMixin.__init__(self, clip_actions)
         self.device  = device     
         
-        self.attention_model = False
+        self.attention_model = True
         if self.attention_model:     
             self.make_attention_model()
         else:
@@ -82,26 +83,33 @@ class D_Actor(DeterministicMixin, Model):
     
     def compute_mlp(self,states, taken_actions, role):
         x = self.mlp_model(states)
-        x = 1*torch.tanh(x)
+       
         return x
     
-    def make_attention_model(self, hidden_size=10):
-        embedding_size = 8
+    def make_attention_model(self, embedding_size=8):
         self.key_value_query_list = [ nn.Linear(self.num_observations, embedding_size).to(self.device) for i in range(3)]
         self.multi_head_attention = nn.MultiheadAttention(embed_dim=embedding_size, num_heads=4, dropout=0.1).to(self.device)
         
-        self.key_value_query_list2 = [ nn.Linear(embedding_size, embedding_size).to(self.device) for i in range(3)]
-        self.multi_head_attention2 = nn.MultiheadAttention(embed_dim=embedding_size, num_heads=4, dropout=0.1).to(self.device)
+        # self.key_value_query_list2 = [ nn.Linear(embedding_size, embedding_size).to(self.device) for i in range(3)]
+        # self.multi_head_attention2 = nn.MultiheadAttention(embed_dim=embedding_size, num_heads=4, dropout=0.1).to(self.device)
+        
+        # self.key_value_query_list3 = [ nn.Linear(embedding_size, embedding_size).to(self.device) for i in range(3)]
+        # self.multi_head_attention3 = nn.MultiheadAttention(embed_dim=embedding_size, num_heads=4, dropout=0.1).to(self.device)
         
         self.final_layer = nn.Linear(embedding_size, self.num_actions).to(self.device)
       
     def compute_attention(self,states, taken_actions, role):
         key, value, query = [ key_value_query(states) for key_value_query in self.key_value_query_list]
         attention_output, attention_weights = self.multi_head_attention(query, key, value)
-        key, value, query = [ key_value_query(attention_output) for key_value_query in self.key_value_query_list2]
-        attention_output, attention_weights = self.multi_head_attention2(query, key, value)
+        
+        # key, value, query = [ key_value_query(attention_output) for key_value_query in self.key_value_query_list2]
+        # attention_output, attention_weights = self.multi_head_attention2(query, key, value)
+        
+        # key, value, query = [ key_value_query(attention_output) for key_value_query in self.key_value_query_list3]
+        # attention_output, attention_weights = self.multi_head_attention3(query, key, value)
+        
         means  =  self.final_layer(attention_output)
-        means =  1*torch.tanh(means)
+      
         return means
     
     
@@ -129,19 +137,24 @@ config['experiment']['directory'] = 'missle_ddqn'
 config['experiment']['name'] = 'missle_ddqn'
 config['experiment']['device'] = device
 config['experiment']['checkpoint_interval'] = 5000
-config['experiment']['random_timesteps'] = 10000
-config['exploration']['time_steps'] = 90000
+# config['experiment']['random_timesteps'] = 10000
+config['exploration']['time_steps'] = 200_000
 config['update_interval'] = 1
 config['target_update_interval'] =config['update_interval'] * 100
 config['learning_rate'] = 1e-3
 
 # n = env.observation_space
-config['state_preprocessor'] = RunningStandardScaler
-config['state_preprocessor_kwargs']={'size' : env.ob_size, 'device' :  device}
-config["value_preprocessor"] = RunningStandardScaler
-config['value_preprocessor_kwargs']={'size' : 1, 'device' :  device}
+# config['state_preprocessor'] = RunningStandardScaler
+# config['state_preprocessor_kwargs']={'size' : env.ob_size, 'device' :  device}
+
 
 # config['value_preprocessor'] = RunningStandardScaler(env.action_space, device)
+
+
+def normalize_rewards(rewards):
+    # return (rewards - rewards.mean()) / (rewards.std() + 1e-8)
+    return (rewards -500)/ 1000
+
 
 class myDDQN(DDQN):
     def _update(self, timestep: int, timesteps: int) -> None:
@@ -155,6 +168,9 @@ class myDDQN(DDQN):
         # sample a batch from memory
         sampled_states, sampled_actions, sampled_rewards, sampled_next_states, sampled_dones = \
             self.memory.sample(names=self.tensors_names, batch_size=self._batch_size)[0]
+            
+        
+        sampled_rewards = normalize_rewards(sampled_rewards)
 
         # gradient steps
         for gradient_step in range(self._gradient_steps):
@@ -169,6 +185,25 @@ class myDDQN(DDQN):
                 # hist, _  = np.histogram(sampled_actions.cpu().numpy(), bins = 3, density=True )
                 # self.writer.add_histogram("sampled_actions / histogram",hist , timestep)
                 self.writer.add_histogram("sampled_actions / histogram",sampled_actions , timestep)
+                
+                # log sampled sampled_states, sampled_actions, sampled_rewards, sampled_next_states, sampled_dones a every 1000 steps
+                if timestep % 1000 == 0:
+                    self.writer.add_histogram("sampled_states / histogram",sampled_states , timestep)
+                    self.writer.add_histogram("sampled_next_states / histogram",sampled_next_states , timestep)
+                    self.writer.add_histogram("sampled_rewards / histogram",sampled_rewards , timestep)
+                    self.writer.add_histogram("sampled_dones / histogram",sampled_dones , timestep)
+                    self.writer.add_histogram("sampled_actions / histogram",sampled_actions , timestep)
+                    
+                    fig = plt.figure()
+                    print("sampled_states.shape", sampled_states.shape)
+                    plt.plot(np.transpose( sampled_states.cpu().numpy(), (1,0)))
+                    self.writer.add_figure("sampled_states / figure", fig, timestep)
+                    plt.close(fig)
+                    # self.writer.add_histogram("sampled_actions / histogram",sampled_actions , timestep)
+                    
+                    # self.writer.add_embedding(sampled_states, global_step=timestep, tag = "sampled_states / embedding")
+                    
+                    
                 
                 
                 next_q_values, _, _ = self.target_q_network.act(states=sampled_next_states, taken_actions=None, role="target_q_network")
@@ -211,7 +246,7 @@ print(type(agent), "agent type. ")
 
 cfg_trainer = copy.deepcopy(SEQUENTIAL_TRAINER_DEFAULT_CONFIG )
 
-cfg_trainer = {"timesteps": 1500000, "headless": True}
+cfg_trainer = {"timesteps": 1_500_000, "headless": True}
 trainer = SequentialTrainer(env,agent,  config, cfg_trainer)
 
 trainer.train()
@@ -220,3 +255,8 @@ trainer.train()
 # # https://stackoverflow.com/a/36608933/1319433
 # # Xvfb :3 -screen 0 1920x1080x24+32 -fbdir /var/tmp &
 # # export DISPLAY=:3
+
+# solved a werid bug by adding this line
+# https://askubuntu.com/a/1405450/199696
+# DISPLAY=:3 LIBGL_DEBUG=verbose python src/missle_agent/missle_agent_skrl.py 
+#  mv /home/garlan/miniconda3/envs/missle2/bin/../lib/libstdc++.so.6 ~/
