@@ -77,10 +77,15 @@ class Missle_Env(gym.Env):
         pass
     
 from missle_defense.missle_game import SCREEN_WIDTH, SCREEN_HEIGHT, MissleGame
+
+from collections import namedtuple
+
+MissleXY = namedtuple('MissleXY', ['x', 'y'])
+
 class Missle_Env_ObAsVector(gym.Env):
     """Custom Environment that follows gym interface"""
     metadata = {'render.modes': ['human', 'rgb_array']}
-    def __init__(self):
+    def __init__(self, previous_n_frames=3, observe_n_missles_or_bullets = 3):
         super(Missle_Env_ObAsVector, self).__init__()
         # Define action and observation space
         # They must be gym.spaces objects
@@ -100,9 +105,9 @@ class Missle_Env_ObAsVector(gym.Env):
         # self.observation_dtype = np.int16
         self.observation_dtype = float
         
-        self.observe_n_missles_or_bullets = 5
+        self.observe_n_missles_or_bullets = observe_n_missles_or_bullets
         # self.observe_n_bullets = 60
-        self.previous_n_frames = 3
+        self.previous_n_frames = previous_n_frames
 
         # the 3 is for the missles and bullets and then the angle of the gun
         # the 20 is for the x and y position (update, try forier embedding like in the paper)
@@ -114,6 +119,7 @@ class Missle_Env_ObAsVector(gym.Env):
                                             shape=self.ob_size, dtype=self.observation_dtype)
         # self.observation = np.random.randint(0, high,size=ob_size, dtype=np.uint16)
         self.observation = self.norm_position(np.zeros(self.ob_size, dtype=self.observation_dtype))
+        self.random_vector = np.random.rand(self.observe_n_missles_or_bullets)
         
         self.games_played = 0
         
@@ -131,11 +137,24 @@ class Missle_Env_ObAsVector(gym.Env):
         all_but_last = self.ob_size[0:-1]
         # clear the first frame
         self.observation[:,:,:,0]=self.norm_position(np.zeros(all_but_last, dtype=self.observation_dtype))
-        for i,m in enumerate(self.game.missles):
+        # self.game.missles., key=lambda x: x.x)
+        
+        # convert missles to MissleXY
+        MissleXY_list = [MissleXY(missle.center[0], missle.center[1]) for missle in self.game.missles]
+        MissleXY_list.sort(key=lambda x: x.x)
+        # for i, missle in enumerate(self.game.missles):
+            
+        
+        # for i,m in enumerate(self.game.missles):
+        #     if i>=self.observe_n_missles_or_bullets-1:
+        #         break
+        #     self.observation[0,0 , i,0] = self.norm_position(m.center[0])
+        #     self.observation[0,1, i,0] =self.norm_position(m.center[1])
+        for i,m in enumerate(MissleXY_list):
             if i>=self.observe_n_missles_or_bullets-1:
                 break
-            self.observation[0,0 , i,0] = self.norm_position(m.center[0])
-            self.observation[0,1, i,0] =self.norm_position(m.center[1])
+            self.observation[0,0 , i,0] = self.norm_position(m.x)
+            self.observation[0,1, i,0] =self.norm_position(m.y)
             
             # self.observation[0,0:self.embedding_size , i,0] = np.array([np.sin(i*np.pi*m.center[0]/ self.high) for i in range(self.embedding_size)])
             # self.observation[0, self.embedding_size:, i,0] =np.array( [np.sin(i*np.pi*m.center[1]/ self.high) for i in range(self.embedding_size)])
@@ -148,10 +167,15 @@ class Missle_Env_ObAsVector(gym.Env):
         
         # record the angle of the gun
         k,i = 2,0
-        self.observation[k,i, 0,0] =np.sin( (math.pi / 180) * self.game.rotation)
-        self.observation[k,i, 1,0] =np.cos(  (math.pi / 180) *self.game.rotation)
+        angle_rad = (math.pi / 180) * self.game.rotation
+        self.observation[k,i, 0,0] =np.sin( angle_rad)
+        # self.observation[k,i,:,0]=np.array([np.sin(v*angle_rad) for v in self.random_vector])
+        self.observation[k,i, 1,0] =np.cos(  angle_rad)
+        # i = 1
+        # self.observation[k,i,:,0]=np.array([np.cos(v*angle_rad) for v in self.random_vector])
         
-        if self.games_played% 200==100:
+        
+        if self.games_played % 1000==100:
             # print(f"observation: {self.observation}")
             print(f"Sample observation to img and np array: {self.games_played}_{self.game.cnt}")
             os.makedirs(f"images/{self.games_played}", exist_ok=True)
